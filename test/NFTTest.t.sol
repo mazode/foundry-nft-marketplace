@@ -30,4 +30,23 @@ contract NFTTest is Test {
         nft.mintNFT(user1);
         vm.stopPrank(); // Stop impersonating user1
     }
+
+    // Test the listing and buying functionality in marketplace
+    function testListAndBuyNFT() public {
+        // User1 lists an NFT for sale
+        vm.startPrank(user1);
+        uint256 tokenId = nft.mintNFT(user2); // Mint NFT to user1
+        nft.approve(address(marketplace), tokenId); // Approve marketplace to transfer the nft
+
+        marketplace.listNFT(address(nft), tokenId, 1 ether, 500); // List NFT for 1 ether with 5% royalty
+        vm.stopPrank();
+
+        // User2 buys the NFT
+        vm.startPrank(user2);
+        marketplace.buyNFT{value: 1 ether}(address(nft), tokenId);
+        vm.stopPrank();
+
+        // Check that User2 now owns the NFT
+        assertEq(nft.ownerOf(tokenId), user2);
+    }
 }
