@@ -49,4 +49,27 @@ contract NFTTest is Test {
         // Check that User2 now owns the NFT
         assertEq(nft.ownerOf(tokenId), user2);
     }
+
+    // Testing Listing and checking Royalty distribution
+    function testRoyaltiesTransfer() public {
+        // User1 lists an NFT for sale
+        vm.startPrank(user1);
+        uint256 tokenId = nft.mintNFT(user1); // Mint NFT to User1
+        nft.approve(address(nft), tokenId); // Approve marketplace to transfer the NFT
+
+        marketplace.listNFT(address(nft), tokenId, 1 ether, 500); // List NFT for 1 ether with 5% royalty
+        vm.stopPrank();
+
+        // User2 buys the NFT
+        vm.startPrank(user2);
+        marketplace.buyNFT{value: 1 ether}(address(nft), tokenId);
+        vm.stopPrank();
+
+        // Check Royalty Distribution
+        uint256 expectedSellerAmount = 0.95 ether; // Seller should get 95% royalty
+        uint256 expectedCreatorAmount = 0.05 ether; // Creator should get 5% royalty
+
+        assertEq(marketplace.balances(user1), expectedSellerAmount);
+        assertEq(marketplace.balances(nft.creatorOf(tokenId)), expectedCreatorAmount);
+    }
 }
