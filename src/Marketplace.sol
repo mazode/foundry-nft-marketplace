@@ -1,69 +1,86 @@
+// File: src/NFTMarketplace.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./NFT.sol";
 
-contract NFTMarketplace is ReentrancyGuard, Ownable {
+contract NFTMarketplace {
     struct Listing {
         address seller;
         uint256 price;
     }
 
-    // Mapping from NFT contract address -> tokenId -> listing details
+    struct RoyaltyInfo {
+        address creator;
+        uint256 royaltyPercentage; // Royalty percentage (e.g., 5% = 500)
+    }
+
+    // Mapping from NFT contract to tokenId to Listing
     mapping(address => mapping(uint256 => Listing)) public listings;
 
-    // Event for listing creation
+    // Mapping from NFT contract to tokenId to royalty info
+    mapping(address => mapping(uint256 => RoyaltyInfo)) public royalties;
+
+    mapping(address => uint256) public balances;
+
     event NFTListed(address indexed nftAddress, uint256 indexed tokenId, address indexed seller, uint256 price);
-    
-    // Event for NFT purchase
-    event NFTSold(address indexed nftAddress, uint256 indexed tokenId, address indexed buyer, uint256 price);
-    
-    // Function to list an NFT for sale
-    function listNFT(address nftAddress, uint256 tokenId, uint256 price) external nonReentrant {
-        require(price > 0, "Price must be greater than zero");
-        
-        IERC721 nft = IERC721(nftAddress);
-        require(nft.ownerOf(tokenId) == msg.sender, "You are not the owner of this NFT");
-        require(nft.isApprovedForAll(msg.sender, address(this)) || nft.getApproved(tokenId) == address(this),
-            "Marketplace not approved to transfer NFT");
+    event NFTPurchased(address indexed nftAddress, uint256 indexed tokenId, address indexed buyer, uint256 price);
+    event ListingCancelled(address indexed nftAddress, uint256 indexed tokenId);
+
+    // List an NFT for sale
+    function listNFT(address nftAddress, uint256 tokenId, uint256 price, uint256 royaltyPercentage) external {
+        require(price > 0, "Price must be greater than 0");
+
+        NFT nft = NFT(nftAddress);
+        require(nft.ownerOf(tokenId) == msg.sender, "Not the owner");
+        require(nft.getApproved(tokenId) == address(this), "Marketplace not approved");
 
         listings[nftAddress][tokenId] = Listing(msg.sender, price);
+        royalties[nftAddress][tokenId] = RoyaltyInfo(nft.creatorOf(tokenId), royaltyPercentage);
+
         emit NFTListed(nftAddress, tokenId, msg.sender, price);
     }
 
-    // Function to buy an NFT
-    function buyNFT(address nftAddress, uint256 tokenId) external payable nonReentrant {
-        Listing memory listedItem = listings[nftAddress][tokenId];
-        require(listedItem.price > 0, "This NFT is not listed for sale");
-        require(msg.value >= listedItem.price, "Insufficient funds to purchase NFT");
+    // Purchase an NFT
+    function buyNFT(address nftAddress, uint256 tokenId) external payable {
+        Listing memory listing = listings[nftAddress][tokenId];
+        require(listing.price > 0, "NFT not listed for sale");
+        require(msg.value == listing.price, "Incorrect value sent");
 
-        // Transfer funds to the seller
-        payable(listedItem.seller).transfer(listedItem.price);
+        // Handle royalty payments
+        RoyaltyInfo memory royalty = royalties[nftAddress][tokenId];
+        uint256 royaltyAmount = (msg.value * royalty.royaltyPercentage) / 10000;
+        uint256 sellerAmount = msg.value - royaltyAmount;
 
-        // Transfer NFT to the buyer
-        IERC721(nftAddress).safeTransferFrom(listedItem.seller, msg.sender, tokenId);
+        balances[listing.seller] += sellerAmount;
+        balances[royalty.creator] += royaltyAmount;
 
-        // Clean up the listing
+        // Transfer NFT to buyer
+        NFT nft = NFT(nftAddress);
+        nft.transferFrom(listing.seller, msg.sender, tokenId);
+
+        // Remove the listing
         delete listings[nftAddress][tokenId];
 
-        emit NFTSold(nftAddress, tokenId, msg.sender, listedItem.price);
+        emit NFTPurchased(nftAddress, tokenId, msg.sender, listing.price);
     }
 
-    // Function to cancel an NFT listing
-    function cancelListing(address nftAddress, uint256 tokenId) external nonReentrant {
-        Listing memory listedItem = listings[nftAddress][tokenId];
-        require(listedItem.seller == msg.sender, "You are not the seller");
+    // Cancel a listing
+    function cancelListing(address nftAddress, uint256 tokenId) external {
+        Listing memory listing = listings[nftAddress][tokenId];
+        require(listing.seller == msg.sender, "Not the seller");
 
-        // Clean up the listing
         delete listings[nftAddress][tokenId];
 
-        emit NFTListed(nftAddress, tokenId, address(0), 0);
+        emit ListingCancelled(nftAddress, tokenId);
     }
 
-    // Optional: Function to update marketplace fees (if applicable)
-    function withdrawFees() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+    // Withdraw balance
+    function withdrawBalance() external {
+        uint256 amount = balances[msg.sender];
+        require(amount > 0, "No balance to withdraw");
+
+        balances[msg.sender] = 0;
+        payable(msg.sender).transfer(amount);
     }
 }
