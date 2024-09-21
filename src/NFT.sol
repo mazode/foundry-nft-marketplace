@@ -11,7 +11,7 @@ contract NFT is ERC721, Ownable(msg.sender) {
     // Mapping from token ID to the original creator's address
     mapping(uint256 => address) private _creators;
 
-    constructor() ERC721("MyNFT", "MNFT") {}
+    constructor() ERC721("CoolNFT", "CNFT") {}
 
     // Mint a new NFT and assign it to the recipient
     function mintNFT(address recipient) external onlyOwner returns (uint256) {
