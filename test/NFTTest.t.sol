@@ -72,4 +72,38 @@ contract NFTTest is Test {
         assertEq(marketplace.balances(user1), expectedSellerAmount);
         assertEq(marketplace.balances(nft.creatorOf(tokenId)), expectedCreatorAmount);
     }
+
+    // Test Creating and Bidding in an Auction
+    function testCreateAndBidAuction() public {
+        // User1 creates an auction
+        vm.startPrank(user1);
+        uint256 tokenId = nft.mintNFT(user1);
+        nft.approve(address(auction), tokenId); // User1 approves the auction contract
+        auction.createAuction(address(nft), tokenId, 1 ether, 1 hours); // Minimum Bid is 1 ETH
+        vm.stopPrank();
+
+        // User2 places a bid
+        vm.startPrank(user2);
+        auction.bid{value: 1.5 ether}(address(nft), tokenId); // User2 bids 1.5 ETH
+        vm.stopPrank();
+
+        // User3 places a higher bid
+        vm.startPrank(user3);
+        auction.bid{value: 2 ether}(address(nft), tokenId); // User3 bids 2 ETH
+        vm.stopPrank();
+
+        // Fast-forward time to end the auction
+        vm.warp(block.timestamp + 1 hours + 1);
+
+        // End the Auction
+        vm.startPrank(user1);
+        auction.endAuction(address(nft), tokenId);
+        vm.stopPrank();
+
+        // Ensure User3 is now the owner of the NFT
+        assertEq(nft.ownerOf(tokenId), user3);
+
+        // Check that User1 (seller) receives the highest bid (2 ETH)
+        assertEq(auction.balances(user1), 2 ether);
+    }
 }
