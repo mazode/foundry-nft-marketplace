@@ -25,6 +25,11 @@ contract NFTTest is Test {
         user2 = address(0x2);
         user3 = address(0x3);
 
+        // Assign Ether to User1, User2, and User3 for the tests
+        vm.deal(user1, 10 ether);
+        vm.deal(user2, 10 ether);
+        vm.deal(user3, 10 ether);
+
         // Mint an NFT to user1
         vm.startPrank(user1); // Start impersonating user1
         nft.mintNFT(user1);
@@ -35,7 +40,7 @@ contract NFTTest is Test {
     function testListAndBuyNFT() public {
         // User1 lists an NFT for sale
         vm.startPrank(user1);
-        uint256 tokenId = nft.mintNFT(user2); // Mint NFT to user1
+        uint256 tokenId = nft.mintNFT(user1); // Mint NFT to user1
         nft.approve(address(marketplace), tokenId); // Approve marketplace to transfer the nft
 
         marketplace.listNFT(address(nft), tokenId, 1 ether, 500); // List NFT for 1 ether with 5% royalty
@@ -55,7 +60,7 @@ contract NFTTest is Test {
         // User1 lists an NFT for sale
         vm.startPrank(user1);
         uint256 tokenId = nft.mintNFT(user1); // Mint NFT to User1
-        nft.approve(address(nft), tokenId); // Approve marketplace to transfer the NFT
+        nft.approve(address(marketplace), tokenId); // Approve marketplace to transfer the NFT
 
         marketplace.listNFT(address(nft), tokenId, 1 ether, 500); // List NFT for 1 ether with 5% royalty
         vm.stopPrank();
@@ -65,12 +70,11 @@ contract NFTTest is Test {
         marketplace.buyNFT{value: 1 ether}(address(nft), tokenId);
         vm.stopPrank();
 
-        // Check Royalty Distribution
-        uint256 expectedSellerAmount = 0.95 ether; // Seller should get 95% royalty
-        uint256 expectedCreatorAmount = 0.05 ether; // Creator should get 5% royalty
+        // Since user1 is both the seller and the creator, they should receive the full amount (1 ether).
+        uint256 expectedTotalAmount = 1 ether; // Sale price: 0.95 ether + 0.05 ether royalty
 
-        assertEq(marketplace.balances(user1), expectedSellerAmount);
-        assertEq(marketplace.balances(nft.creatorOf(tokenId)), expectedCreatorAmount);
+        // Check that user1 received the full amount (sale price + royalty)
+        assertEq(marketplace.balances(user1), expectedTotalAmount);
     }
 
     // Test Creating and Bidding in an Auction

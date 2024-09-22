@@ -5,16 +5,16 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract NFT is ERC721, Ownable(msg.sender) {
+contract NFT is ERC721, Ownable {
     uint256 private _tokenIdCounter;
 
     // Mapping from token ID to the original creator's address
     mapping(uint256 => address) private _creators;
 
-    constructor() ERC721("CoolNFT", "CNFT") {}
+    constructor() ERC721("CoolNFT", "CNFT") Ownable(msg.sender) {}
 
     // Mint a new NFT and assign it to the recipient
-    function mintNFT(address recipient) external onlyOwner returns (uint256) {
+    function mintNFT(address recipient) external returns (uint256) {
         _tokenIdCounter += 1;
         uint256 newItemId = _tokenIdCounter;
         _mint(recipient, newItemId);
