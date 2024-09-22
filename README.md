@@ -1,66 +1,15 @@
-## Foundry
+# **NFT Marketplace with Auction and Royalties**
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This project demonstrates an ERC-721 based **NFT Marketplace** with the following features:
 
-Foundry consists of:
+- Minting unique NFTs.
+- Listing NFTs for sale with optional royalty distribution.
+- Auctioning NFTs with bidding and automatic fund distribution.
+- Original creators receive a percentage of sales in secondary markets (royalties).
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## **Features**
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+1. **Mint NFTs**: Create new ERC-721 tokens.
+2. **Marketplace**: Buy and sell NFTs with automatic royalty distribution to creators.
+3. **Auction**: Create and bid on timed auctions for NFTs.
+4. **Royalty System**: Original creators receive a percentage of sales in secondary markets.
